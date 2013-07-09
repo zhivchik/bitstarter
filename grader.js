@@ -57,12 +57,31 @@ var checkHtmlFile = function(htmlfile, checksfile) {
 
 if(require.main == module) {
     program
-        .option('-c, --checks ', 'Path to checks.json', assertFileExists, CHECKSFILE_DEFAULT)
-        .option('-f, --file ', 'Path to index.html', assertFileExists, HTMLFILE_DEFAULT)
+        .option('-c, --checks [json-file] ', 'Path to checks json file; [checks.json]', assertFileExists, CHECKSFILE_DEFAULT)
+        .option('-f, --file [file]', 'Path to file; [index.html]', assertFileExists, HTMLFILE_DEFAULT)
+        .option('-u, --url [url] ', 'URL to index.html; [http://example.com/index.html]','')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+
+      var rest = require('restler');
+      var url = program.url.toString();
+      rest.get(url).on('complete', function(result) {
+	if (result instanceof Error) {
+	  var checkJson = checkHtmlFile(program.file, program.checks);
+	  var outJson = JSON.stringify(checkJson, null, 4);
+	} else {
+	  console.log("Retriving " + url);
+	  var file = "/tmp/grader.tmp";
+	  fs.writeFileSync(file,result,'utf-8');
+	  var checkJson = checkHtmlFile(file, program.checks);
+	  fs.unlink(file);
+	  var outJson = JSON.stringify(checkJson, null, 4);
+	}
+      	console.log(outJson);
+      });
+//    process.exit(1);
+//    var checkJson = checkHtmlFile(program.file, program.checks);
+//    var outJson = JSON.stringify(checkJson, null, 4);
+//    console.log(outJson);
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
